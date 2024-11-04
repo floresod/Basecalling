@@ -4,7 +4,8 @@ import glob
 
 rule all:
     input:
-        "../resources/Output/Dorado/calls.bam"
+        "../resources/Output/Dorado/calls.bam",
+        "../resources/Output/Barcodes/"
 
 rule dorado_run:
     input:
@@ -16,14 +17,27 @@ rule dorado_run:
         bc_kit="SQK-RBK114-24", 
         model="dna_r10.4.1_e8.2_400bps_hac@v5.0.0"
     log: 
-        "../resources/Logs/Dorado/dorado.log"
+        "../resources/Logs/dorado.log"
     shell: 
         """
         # load modules
         module load CCEnv 
-        module load StdEnv
-        module load dorado/0.7.2
+        module load StdEnv/2023
+        module load dorado/0.8.0
 
         dorado basecaller {params.model} {input} --output {output.dirout} \
             --kit-name  {params.bc_kit} > {output.bam_file}  {log} 2>&1
+        """
+
+rule demux:
+    input: 
+        bamfile="../resources/Output/Dorado/calls.bam"
+    output:
+        dirout="../resources/Output/Barcodes"
+    log:
+        "../resources/Logs/demux/demux.log"
+    shell:
+        """
+        dorado demux --output-dir {output.dirout} --no-classify {input.bamfile}
+
         """

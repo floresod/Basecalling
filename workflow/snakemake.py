@@ -1,7 +1,3 @@
-import glob
-
-#SAMPLE,=glob_wildcards("../resources/Data/pod5/") 
-
 rule all:
     input:
         "../resources/Data/pod5/",
@@ -14,21 +10,19 @@ rule all:
 rule decompress:
     input:
         tar_file="../resources/Data/pod5.tar.gz"
-
     output:
-        dir("../resources/Data/pod5/")
+        directory("../resources/Data/pod5/")
     log:
         "../resources/Logs/decompress.log"
     shell:
         """
-        tar -xvzf {input.tar_file} -C {output} > {log} 2>&1
+        tar -xvzf {input.tar_file} -C ../resources/Data > {log} 2>&1
         """
 
 rule dorado_run:
     input:
        "../resources/Data/pod5/"
     output: 
-        dirout="../resources/Output/Dorado/", 
         bam_file="../resources/Output/Dorado/calls.bam"
     params: 
         bc_kit="SQK-RBK114-24", 
@@ -37,24 +31,25 @@ rule dorado_run:
         "../resources/Logs/dorado.log"
     shell: 
         """
-        # load modules
+        # Load modules
         module load CCEnv 
         module load StdEnv/2023
         module load dorado/0.8.0
 
-        dorado basecaller {params.model} {input} --output {output.dirout} \
-            --kit-name  {params.bc_kit} > {output.bam_file} >  {log} 2>&1
+        dorado basecaller {params.model} {input} --output ../resources/Output/Dorado \
+            --kit-name {params.bc_kit} > {output.bam_file} 2>&1 | tee {log}
         """
 
 rule demux:
     input: 
         bamfile="../resources/Output/Dorado/calls.bam"
     output:
-        dirout="../resources/Output/Barcodes"
+        directory("../resources/Output/Barcodes")
     log:
         "../resources/Logs/demux/demux.log"
     shell:
         """
-        dorado demux --output-dir {output.dirout} \
-                    --no-classify {input.bamfile} > {log} 2>&1
+        dorado demux --output-dir {output} --no-classify {input.bamfile} > {log} 2>&1
         """
+
+

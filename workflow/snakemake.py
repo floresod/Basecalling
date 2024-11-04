@@ -4,8 +4,25 @@ import glob
 
 rule all:
     input:
+        "../resources/Data/pod5/",
         "../resources/Output/Dorado/calls.bam",
         "../resources/Output/Barcodes/"
+
+#############################
+#### De-compressed files ####
+#############################
+rule decompress:
+    input:
+        tar_file="../resources/Data/pod5.tar.gz"
+
+    output:
+        dir("../resources/Data/pod5/")
+    log:
+        "../resources/Logs/decompress.log"
+    shell:
+        """
+        tar -xvzf {input.tar_file} -C {output} > {log} 2>&1
+        """
 
 rule dorado_run:
     input:
@@ -26,7 +43,7 @@ rule dorado_run:
         module load dorado/0.8.0
 
         dorado basecaller {params.model} {input} --output {output.dirout} \
-            --kit-name  {params.bc_kit} > {output.bam_file}  {log} 2>&1
+            --kit-name  {params.bc_kit} > {output.bam_file} >  {log} 2>&1
         """
 
 rule demux:
@@ -38,6 +55,6 @@ rule demux:
         "../resources/Logs/demux/demux.log"
     shell:
         """
-        dorado demux --output-dir {output.dirout} --no-classify {input.bamfile}
-
+        dorado demux --output-dir {output.dirout} \
+                    --no-classify {input.bamfile} > {log} 2>&1
         """

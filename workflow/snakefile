@@ -1,15 +1,15 @@
 rule all:
     input:
         "../resources/Data/pod5/",
-        "../resources/Outputs/Dorado/calls.bam",
+        "../resources/Outputs/Dorado/",
         "../resources/Outputs/Barcodes/"
 
-#############################
-#### De-compressed files ####
-#############################
+##################################
+# Rule: Decompress .tar.gz files #
+##################################
 rule decompress:
     input:
-        tar_file="../resources/Data/pod5.tar.gz"
+        tar_file = "../resources/Data/pod5.tar.gz"
     output:
         directory("../resources/Data/pod5/")
     log:
@@ -19,38 +19,51 @@ rule decompress:
         tar -xvzf {input.tar_file} -C ../resources/Data > {log} 2>&1
         """
 
+############################
+# Rule: Basecalling Dorado #
+############################
 rule dorado_run:
     input:
-       "../resources/Data/pod5/"
-    output: 
-        bam_file="../resources/Outputs/Dorado/calls.bam"
-    params: 
-        bc_kit="SQK-RBK114-96", 
-        model="../resources/Databases/dorado_models/dna_r10.4.1_e8.2_400bps_hac@v5.0.0"
-    log: 
+        "../resources/Data/pod5/"
+    output:
+       bam_file="../resources/Outputs/Dorado/calls.bam",
+       directory = directory("../resources/Outputs/Dorado/")
+    params:
+        bc_kit = "SQK-RBK114-96",
+        model = "hac" #"../resources/Databases/dorado_models/dna_r10.4.1_e8.2_400bps_hac@v5.0.0"
+    log:
         "../resources/Logs/dorado.log"
-    shell: 
+    shell:
         """
-        # Load modules
-        module load CCEnv 
+        module load CCEnv
         module load StdEnv/2023
         module load dorado/0.9.5
 
-        dorado basecaller {params.model} {input}\
-	--output ../resources/Output/Dorado \
-        --kit-name {params.bc_kit} > {output.bam_file} 2>&1 | tee {log}
+        mkdir -p ../resources/Outputs/Dorado
+
+        dorado basecaller {params.model} {input} \
+            --output {output.directory} \
+            --kit-name {params.bc_kit} > {output.bam_file} >> {log} 2>&1
         """
 
+##########################
+# Rule: Demultiplex reads #
+##########################
 rule demux:
-    input: 
-        bamfile="../resources/Outputs/Dorado/calls.bam"
+    input:
+        bam_file = "../resources/Outputs/Dorado/calls.bam"
     output:
-        directory("../resources/Outputs/Barcodes")
+        directory("../resources/Outputs/Barcodes/")
     log:
         "../resources/Logs/demux/demux.log"
     shell:
         """
-        dorado demux --output-dir {output} --no-classify {input.bamfile} > {log} 2>&1
-        """
+        module load CCEnv
+        module load StdEnv/2023
+        module load dorado/0.9.5
 
+        mkdir -p ../resources/Outputs/Barcodes
+
+        dorado demux --output-dir {output} --no-classify {input.bam_file} > {log} 2>&1
+        """
 

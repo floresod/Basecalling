@@ -1,0 +1,8 @@
+#!/bin/bash
+
+# Run snakemake 
+snakemake -s snakefile --use-conda \
+--executor cluster-generic \
+--cluster-generic-submit-cmd \
+'sbatch --partition=agro-b --account=def-hoomandv --time=1-12:00:00 --cpus-per-task=24 --gpus-per-node=1 --mem=200G --output=../resources/Logs/Slurm/%j.out ' \
+-j 1
